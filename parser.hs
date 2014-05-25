@@ -3,14 +3,13 @@ module Parser where
 import System.Directory
 import System.Posix
 
-data FileTree = File String Int FileStatus | Dir String Int FileStatus [FileTree]
+data FileTree = File String Int FileStatus
+              | Dir  String Int FileStatus [FileTree]
 
 instance Show FileTree where
-  show (File path size _)   = "File: " ++ path ++ "\n Size: " ++ show size
-  show (Dir  path size _ files) = "Dir: "  ++ path ++
-                "\n Size: " ++ show size ++ "\n" ++ unlines (map show files)
+  show = printTree
 
-parseTree :: String -> IO FileTree
+parseTree :: FilePath -> IO FileTree
 parseTree path = do
       file <- getFileStatus path
       if isDirectory file
@@ -42,3 +41,18 @@ calculateTreeSize entry@(Dir path size stat files) = if size == -1
 getDirSize :: FileTree -> Int
 getDirSize (File _ size _)       = abs size
 getDirSize (Dir  _ _    _ files) = sum $ map getDirSize files
+
+printTree :: FileTree -> String
+printTree = printTreeIndent ""
+
+printTreeIndent :: String -> FileTree -> String
+printTreeIndent indent (File path size _) = indent ++ "File: " ++ path
+                                    ++ " -- Size: " ++ show size ++ "\n"
+printTreeIndent indent (Dir  path size _ files) =
+                      indent ++ "Dir: "  ++ path
+                      ++ " -- Size: " ++ show size ++ "\n"
+                      ++ concat (map (printTreeIndent (" " ++ indent)) files)
+
+testTree :: IO FileTree
+testTree = do t <- parseTree "test"
+              return $ calculateTreeSize t

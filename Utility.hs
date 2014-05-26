@@ -22,18 +22,5 @@ getDirSize (File _ size _)       = abs size
 getDirSize (Dir  _ _    _ files) = sum $ map getDirSize files
 
 sortTree :: FileTree -> FileTree
-sortTree (Dir p s f files) = Dir p s f $ sortBy (flip compare) files
+sortTree (Dir p s f files) = Dir p s f $ sortBy (flip compare) $ map sortTree files
 sortTree f = f
-
-showDepthTree :: Int -> FileTree -> String
-showDepthTree = showDepthTreeIndent ""
-
-showDepthTreeIndent :: String -> Int -> FileTree -> String
-showDepthTreeIndent _ 0 _ = ""
-showDepthTreeIndent indent _ (File path size _) =
-          indent ++ "File: " ++ path
-          ++ " -- Size: " ++ show size ++ "\n"
-showDepthTreeIndent indent depth (Dir  path size _ files) =
-          indent ++ "Dir: "  ++ path
-          ++ " -- Size: " ++ show size ++ "\n"
-          ++ concatMap (showDepthTreeIndent ("  " ++ indent) (depth - 1)) files

@@ -1,6 +1,7 @@
 module Parser
   ( FileTree (File, Dir)
   , parseTree
+  , showTree
   )
 where
 
@@ -11,7 +12,7 @@ data FileTree = File String Int FileStatus
               | Dir  String Int FileStatus [FileTree]
 
 instance Show FileTree where
-  show = showTree
+  show = showTree (-1)
 
 instance Eq FileTree where
   (File _ i1 _)   == (File _ i2 _)   = i1 == i2
@@ -42,16 +43,18 @@ filterDirContents path ("..":fs) = filterDirContents path fs
 filterDirContents path (f:fs)    = (path ++ "/" ++ f) :
                                     filterDirContents path fs
 
-showTree :: FileTree -> String
+showTree :: Int -> FileTree -> String
 showTree = showTreeIndent ""
 
-showTreeIndent :: String -> FileTree -> String
-showTreeIndent indent (File path size _) = indent ++ "File: " ++ path
-                                    ++ " -- Size: " ++ show size ++ "\n"
-showTreeIndent indent (Dir  path size _ files) =
-                      indent ++ "Dir: "  ++ path
-                      ++ " -- Size: " ++ show size ++ "\n"
-                      ++ concatMap (showTreeIndent ("  " ++ indent)) files
+showTreeIndent :: String -> Int -> FileTree -> String
+showTreeIndent _ 0 _ = ""
+showTreeIndent indent _ (File path size _) =
+          indent ++ "File: " ++ path
+          ++ " -- Size: " ++ show size ++ "\n"
+showTreeIndent indent depth (Dir  path size _ files) =
+          indent ++ "Dir: "  ++ path
+          ++ " -- Size: " ++ show size ++ "\n"
+          ++ concatMap (showTreeIndent ("  " ++ indent) (max (depth - 1) (-1))) files
 
 --testTree :: IO FileTree
 --testTree = do t <- parseTree "test"

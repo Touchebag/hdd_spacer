@@ -10,6 +10,7 @@ import System.Posix
 
 data FileTree = File String Int FileStatus
               | Dir  String Int FileStatus [FileTree]
+              | NoFile
 
 instance Show FileTree where
   show = showTree (-1)
@@ -19,15 +20,21 @@ instance Eq FileTree where
   (File _ i1 _)   == (Dir  _ i2 _ _) = i1 == i2
   (Dir  _ i1 _ _) == (File _ i2 _)   = i1 == i2
   (Dir  _ i1 _ _) == (Dir  _ i2 _ _) = i1 == i2
+  _               == _               = True
 
 instance Ord FileTree where
   (File _ i1 _)   <= (File _ i2 _)   = i1 <= i2
   (File _ i1 _)   <= (Dir  _ i2 _ _) = i1 <= i2
   (Dir  _ i1 _ _) <= (File _ i2 _)   = i1 <= i2
   (Dir  _ i1 _ _) <= (Dir  _ i2 _ _) = i1 <= i2
+  _               <= _               = True
 
 parseTree :: FilePath -> IO FileTree
 parseTree path = do
+    exFile <- doesFileExist path
+    exDir  <- doesDirectoryExist path
+    if exFile || exDir
+    then do
       file <- getFileStatus path
       if isDirectory file
         then do
@@ -35,6 +42,7 @@ parseTree path = do
           tree  <- mapM parseTree $ filterDirContents path files
           return $ Dir path (-1) file tree
         else return $ File path (-1) file
+    else return NoFile
 
 filterDirContents :: FilePath -> [FilePath] -> [FilePath]
 filterDirContents _    []        = []
@@ -47,7 +55,8 @@ showTree :: Int -> FileTree -> String
 showTree = showTreeIndent ""
 
 showTreeIndent :: String -> Int -> FileTree -> String
-showTreeIndent _ 0 _ = ""
+showTreeIndent _ _ NoFile = ""
+showTreeIndent _ 0 _      = ""
 showTreeIndent indent _ (File path size _) =
           indent ++ "File: " ++ path
           ++ " -- Size: " ++ show size ++ "\n"
